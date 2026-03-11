@@ -42,6 +42,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.HorariosApp.reports.init();
         }
 
+        // Inicializar Detalle Empleado
+        if (window.HorariosApp.employeeDetail) {
+            window.HorariosApp.employeeDetail.init();
+        }
+
         // Inicializar Limpieza
         if (window.HorariosApp.cleanup) {
             window.HorariosApp.cleanup.init();

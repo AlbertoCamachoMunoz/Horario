@@ -386,6 +386,71 @@ main {
     text-align: right;
 }
 
+/* Dashboard Detalle Empleado */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    text-align: center;
+}
+
+.stat-box {
+    padding: 10px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    display: block;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+.week-block {
+    margin-bottom: 15px;
+}
+
+.week-header {
+    background: #e3f2fd;
+    padding: 10px 15px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.week-content {
+    background: white;
+    border-radius: 0 0 8px 8px;
+    padding: 5px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.day-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.9rem;
+}
+
+.day-row:last-child {
+    border-bottom: none;
+}
+
+.clickable-card {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.clickable-card:active {
+    background-color: #f0f0f0;
+}
+
 /* Utility */
 .hidden {
     display: none !important;
