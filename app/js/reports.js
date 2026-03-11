@@ -1,5 +1,5 @@
 /**
- * Lógica de Informes Mensuales (Sin módulos)
+ * Lógica de Informes Detallados Multiempleado (Sin módulos)
  */
 
 window.HorariosApp = window.HorariosApp || {};
@@ -35,70 +35,141 @@ window.HorariosApp = window.HorariosApp || {};
 
             monthSelect.value = new Date().getMonth() + 1;
             yearSelect.value = currentYear;
+
+            this.updateWeeksSelector();
         },
 
         setupEventListeners: function() {
-            document.getElementById('report-month').addEventListener('change', () => this.generateReport());
-            document.getElementById('report-year').addEventListener('change', () => this.generateReport());
+            document.getElementById('report-month').addEventListener('change', () => {
+                this.updateWeeksSelector();
+                this.generateReport();
+            });
+            document.getElementById('report-year').addEventListener('change', () => {
+                this.updateWeeksSelector();
+                this.generateReport();
+            });
+            document.getElementById('btn-generate-report').addEventListener('click', () => this.generateReport());
+        },
+
+        updateWeeksSelector: function() {
+            const year = parseInt(document.getElementById('report-year').value);
+            const month = parseInt(document.getElementById('report-month').value);
+            const weekSelect = document.getElementById('report-week');
+            
+            weekSelect.innerHTML = '<option value="all">Todo el mes (por semanas)</option>';
+            
+            const weeks = this.getWeeksInMonth(year, month);
+            weeks.forEach((w, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `Semana ${i + 1} (${w.start.getDate()} - ${w.end.getDate()} ${this.getMonthNameShort(w.end.getMonth())})`;
+                weekSelect.appendChild(opt);
+            });
+        },
+
+        getWeeksInMonth: function(year, month) {
+            const firstDay = new Date(year, month - 1, 1);
+            const lastDay = new Date(year, month, 0);
+            const weeks = [];
+            
+            let currentDay = new Date(firstDay);
+            const startDayOfWeek = currentDay.getDay(); 
+            const diffToMonday = (startDayOfWeek === 0 ? 6 : startDayOfWeek - 1);
+            currentDay.setDate(currentDay.getDate() - diffToMonday);
+
+            while (currentDay <= lastDay) {
+                const weekStart = new Date(currentDay);
+                const weekEnd = new Date(currentDay);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+
+                if (weekEnd >= firstDay) {
+                    weeks.push({ start: weekStart, end: weekEnd });
+                }
+                currentDay.setDate(currentDay.getDate() + 7);
+            }
+            return weeks;
         },
 
         generateReport: async function() {
-            const month = document.getElementById('report-month').value;
-            const year = document.getElementById('report-year').value;
+            const month = parseInt(document.getElementById('report-month').value);
+            const year = parseInt(document.getElementById('report-year').value);
+            const weekIdx = document.getElementById('report-week').value;
             const content = document.getElementById('reports-content');
             
-            content.innerHTML = '<p class="empty-msg">Calculando...</p>';
+            content.innerHTML = '<p class="empty-msg">Generando desglose...</p>';
 
             try {
                 const employees = await window.HorariosApp.db.getAll('employees');
                 const workHours = await window.HorariosApp.db.getAll('work_hours');
                 const prices = await window.HorariosApp.db.getAll('price_hour');
                 
-                // Filtrar horas de este mes
                 const monthStr = `${year}-${String(month).padStart(2, '0')}`;
-                const monthlyHours = workHours.filter(h => h.date.startsWith(monthStr));
-
-                if (monthlyHours.length === 0) {
-                    content.innerHTML = '<p class="empty-msg">No hay horas registradas en este periodo.</p>';
-                    return;
-                }
-
+                const allWeeks = this.getWeeksInMonth(year, month);
+                
+                let filteredWeeks = (weekIdx === 'all') ? allWeeks : [allWeeks[weekIdx]];
                 let totalGlobal = 0;
-                let html = '<div class="card">';
+                let html = '';
 
                 for (let emp of employees) {
-                    const empHours = monthlyHours.filter(h => h.employee_id === emp.id);
+                    const empHours = workHours.filter(h => h.employee_id === emp.id && h.date.startsWith(monthStr));
                     if (empHours.length === 0) continue;
 
+                    let empHtml = `<div class="card" style="border-left: 5px solid var(--primary-color);">
+                        <h3 style="margin-bottom:10px; color: var(--primary-color);">${emp.nombre}</h3>`;
+                    
                     let empTotalCost = 0;
                     let empTotalHours = 0;
 
-                    for (let h of empHours) {
-                        const price = this.getPriceForDate(prices, h.date);
-                        empTotalCost += h.hours * price;
-                        empTotalHours += h.hours;
-                    }
+                    filteredWeeks.forEach((week, i) => {
+                        const weekHours = empHours.filter(h => {
+                            const d = new Date(h.date);
+                            return d >= week.start && d <= week.end;
+                        }).sort((a,b) => a.date.localeCompare(b.date));
 
-                    totalGlobal += empTotalCost;
+                        if (weekHours.length > 0) {
+                            let weekH = 0;
+                            let weekC = 0;
+                            
+                            empHtml += `<div class="week-block" style="margin-bottom:10px; border-bottom: 1px solid #eee; padding-bottom:5px;">
+                                <div style="font-weight:bold; font-size:0.9rem; background:#f9f9f9; padding:5px;">Semana ${weekIdx === 'all' ? i+1 : parseInt(weekIdx)+1}</div>`;
+                            
+                            weekHours.forEach(h => {
+                                const price = this.getPriceForDate(prices, h.date);
+                                const cost = h.hours * price;
+                                weekH += h.hours;
+                                weekC += cost;
+                                const dayNum = h.date.split('-')[2];
+                                empHtml += `<div style="display:flex; justify-content:space-between; font-size:0.8rem; padding:2px 10px;">
+                                    <span>Día ${dayNum}</span>
+                                    <span>${h.hours}h x ${price}€ = ${cost.toFixed(2)}€</span>
+                                </div>`;
+                            });
 
-                    html += `
-                        <div class="report-row">
-                            <div>
-                                <strong>${emp.nombre}</strong><br>
-                                <small>${empTotalHours} horas</small>
-                            </div>
-                            <div style="font-weight:bold;">${empTotalCost.toFixed(2)} €</div>
+                            empHtml += `<div style="text-align:right; font-weight:bold; font-size:0.85rem; padding:5px 10px;">Subtotal Semana: ${weekC.toFixed(2)}€</div></div>`;
+                            empTotalCost += weekC;
+                            empTotalHours += weekH;
+                        }
+                    });
+
+                    empHtml += `
+                        <div style="text-align:right; margin-top:10px; padding-top:10px; border-top: 1px solid #ddd; font-weight:bold;">
+                            TOTAL ${emp.nombre}: ${empTotalHours}h | ${empTotalCost.toFixed(2)}€
                         </div>
-                    `;
+                    </div>`;
+                    
+                    if (empTotalHours > 0) {
+                        html += empHtml;
+                        totalGlobal += empTotalCost;
+                    }
                 }
 
                 html += `
-                    <div class="report-total">
-                        Total Periodo: ${totalGlobal.toFixed(2)} €
-                    </div>
-                </div>`;
+                    <div class="card" style="background: var(--primary-dark); color: white; text-align: center;">
+                        <h2 style="margin:0;">TOTAL GENERAL: ${totalGlobal.toFixed(2)}€</h2>
+                        <small>${weekIdx === 'all' ? 'Mes completo' : 'Semana seleccionada'}</small>
+                    </div>`;
 
-                content.innerHTML = html;
+                content.innerHTML = html || '<p class="empty-msg">No hay datos para este filtro.</p>';
 
             } catch (error) {
                 console.error(error);
@@ -107,11 +178,13 @@ window.HorariosApp = window.HorariosApp || {};
         },
 
         getPriceForDate: function(prices, date) {
-            // Ordenar precios por fecha desc
             const sortedPrices = [...prices].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
-            // Buscar el primero que sea menor o igual a la fecha de la hora
             const price = sortedPrices.find(p => p.start_date <= date);
             return price ? price.price_hour : 0;
+        },
+
+        getMonthNameShort: function(m) {
+            return ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"][m];
         }
     };
 

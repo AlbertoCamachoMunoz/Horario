@@ -24,7 +24,7 @@
             <li><a href="#" onclick="HorariosApp.ui.switchView('calendar'); return false;">Calendario</a></li>
             <li><a href="#" onclick="HorariosApp.ui.switchView('employees'); return false;">Gestionar Empleados</a></li>
             <li><a href="#" onclick="HorariosApp.ui.switchView('prices'); return false;">Precios por Hora</a></li>
-            <li><a href="#" onclick="HorariosApp.ui.switchView('reports'); return false;">Informes Mensuales</a></li>
+            <li><a href="#" onclick="if(HorariosApp.reports) HorariosApp.reports.generateReport(); HorariosApp.ui.switchView('reports'); return false;">Informes Mensuales</a></li>
             <li><a href="#" onclick="HorariosApp.employeeDetail.loadEmployeeList(); HorariosApp.ui.switchView('employee-reports'); return false;">Detalle Empleados</a></li>
             <li><a href="#" onclick="HorariosApp.ui.switchView('settings'); return false;">Configuración</a></li>
         </ul>
@@ -63,17 +63,22 @@
             </div>
         </div>
 
-        <!-- VISTA DE INFORMES -->
         <div id="view-reports" class="view">
             <div class="view-header">
-                <h2>Informes Mensuales</h2>
+                <h2>Informes Detallados</h2>
             </div>
-            <div class="card" style="display:flex; gap:10px; align-items:center;">
-                <select id="report-month" class="form-control" style="flex:1; padding:10px;"></select>
-                <select id="report-year" class="form-control" style="flex:1; padding:10px;"></select>
+            <div class="card" style="display:flex; flex-direction: column; gap:10px;">
+                <div style="display:flex; gap:5px;">
+                    <select id="report-year" class="form-control" style="flex:1; padding:8px;"></select>
+                    <select id="report-month" class="form-control" style="flex:1; padding:8px;"></select>
+                </div>
+                <select id="report-week" class="form-control" style="width:100%; padding:8px;">
+                    <option value="all">Todo el mes (por semanas)</option>
+                </select>
+                <button id="btn-generate-report" class="btn-primary" style="width:100%;">GENERAR INFORME</button>
             </div>
             <div id="reports-content" class="list-container">
-                <!-- Se cargará el resumen de costes -->
+                <!-- Se cargará el resumen detallado -->
             </div>
         </div>
 
