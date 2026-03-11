@@ -27,9 +27,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.HorariosApp.employees.init();
         }
 
+        // Inicializar Precios
+        if (window.HorariosApp.prices) {
+            window.HorariosApp.prices.init();
+        }
+
         // Inicializar Horas
         if (window.HorariosApp.hours) {
             window.HorariosApp.hours.init();
+        }
+
+        // Inicializar Informes
+        if (window.HorariosApp.reports) {
+            window.HorariosApp.reports.init();
+        }
+
+        // Inicializar Limpieza
+        if (window.HorariosApp.cleanup) {
+            window.HorariosApp.cleanup.init();
+            await window.HorariosApp.cleanup.checkOldData();
         }
 
         // Mostrar vista inicial

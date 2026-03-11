@@ -340,6 +340,52 @@ main {
     margin-top: 50px;
 }
 
+/* Modales */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+.modal-content {
+    max-width: 90%;
+    width: 350px;
+    padding: 25px;
+}
+
+.modal-content h3 {
+    margin-bottom: 15px;
+    color: var(--error-color);
+}
+
+/* Informes */
+.report-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.report-row:last-child {
+    border-bottom: none;
+}
+
+.report-total {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px solid var(--primary-color);
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-align: right;
+}
+
 /* Utility */
 .hidden {
     display: none !important;
