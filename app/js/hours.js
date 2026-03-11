@@ -32,7 +32,15 @@ window.HorariosApp = window.HorariosApp || {};
         openDay: async function(date) {
             currentSelectedDate = date;
             document.getElementById('selected-day-title').textContent = this.formatDateDisplay(date);
-            document.getElementById('all-employees-hours').value = '';
+            
+            // Cargar horas por defecto desde configuración
+            let defaultHours = '';
+            try {
+                const setting = await window.HorariosApp.db.getById('settings', 'default_hours');
+                if (setting) defaultHours = setting.value;
+            } catch(e) {}
+            
+            document.getElementById('all-employees-hours').value = defaultHours;
             
             window.HorariosApp.ui.switchView('day-hours');
             await this.loadDayEmployees();

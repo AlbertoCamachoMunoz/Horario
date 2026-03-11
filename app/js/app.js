@@ -32,6 +32,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.HorariosApp.prices.init();
         }
 
+        // Inicializar Configuración
+        if (window.HorariosApp.settings) {
+            await window.HorariosApp.settings.init();
+        }
+
         // Inicializar Horas
         if (window.HorariosApp.hours) {
             window.HorariosApp.hours.init();

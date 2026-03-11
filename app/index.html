@@ -184,8 +184,29 @@
         </div>
 
         <div id="view-settings" class="view">
-            <h2>Configuración</h2>
-            <p>Próximamente...</p>
+            <div class="view-header">
+                <h2>Configuración</h2>
+            </div>
+            <div class="card">
+                <h3>Preferencias Generales</h3>
+                <form id="settings-form" style="margin-top:15px;">
+                    <div class="form-group">
+                        <label for="set-default-hours">Horas por defecto (día)</label>
+                        <input type="number" id="set-default-hours" min="0" max="24" step="0.5" placeholder="Ej: 8">
+                        <small style="color:#666;">Estas horas aparecerán sugeridas al abrir un día en el calendario.</small>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top:20px;">
+                        <button type="submit" class="btn-primary" style="width:100%;">GUARDAR CONFIGURACIÓN</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card" style="margin-top:30px; border: 1px solid #ffcdd2;">
+                <h3 style="color:var(--error-color);">Zona de Peligro</h3>
+                <p style="font-size:0.8rem; margin:10px 0;">Borra todos los datos de la aplicación (Empleados, Horas, Precios).</p>
+                <button id="btn-danger-reset" class="btn-secondary" style="color:var(--error-color); border:1px solid var(--error-color); width:100%;">RESETEAR TODA LA APP</button>
+            </div>
         </div>
     </main>
 
@@ -209,6 +230,7 @@
     <script src="js/calendar.js"></script>
     <script src="js/employees.js"></script>
     <script src="js/prices.js"></script>
+    <script src="js/settings.js"></script>
     <script src="js/hours.js"></script>
     <script src="js/reports.js"></script>
     <script src="js/employee-detail.js"></script>
