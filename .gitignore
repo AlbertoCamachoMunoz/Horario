@@ -1,0 +1,48 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env files
+.env
+.env.local
+*.env.local
+
+# Java / Maven / Gradle
+**/target/
+**/.mvn/wrapper/maven-wrapper.jar
+**/.gradle/
+**/build/
+*.class
+
+# Node / Angular
+**/node_modules/
+**/dist/
+**/.angular/
+**/coverage/
+**/.cache/
+*.tsbuildinfo
+
+# IDE/editor
+.idea/
+.vscode/
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.iml
+
+# VSCode workspace settings generated locally
+**/.vscode/settings.json
+*.code-workspace
+
+
+# Engram AI agent memory
+.engram/
+GEMINI.md
+start_dev.bat
+.agent/specs/archivados
