@@ -38,6 +38,7 @@ window.HorariosApp = window.HorariosApp || {};
             const form = document.getElementById('employee-details-form');
             document.getElementById('employee-form-title').textContent = 'Nuevo Empleado';
             document.getElementById('emp-id').value = '';
+            document.getElementById('emp-activo').checked = true; // Por defecto activo
             form.reset();
         },
 
@@ -47,8 +48,8 @@ window.HorariosApp = window.HorariosApp || {};
                 nombre: document.getElementById('emp-nombre').value,
                 tlf: document.getElementById('emp-tlf').value,
                 direccion: document.getElementById('emp-direccion').value,
-                vehiculo: document.getElementById('emp-vehiculo').checked,
-                activo: true
+                vehiculo: document.getElementById('emp-vehiculo').checked ? 1 : 0,
+                activo: document.getElementById('emp-activo').checked ? 1 : 0
             };
 
             try {
@@ -84,9 +85,11 @@ window.HorariosApp = window.HorariosApp || {};
                 employees.forEach(emp => {
                     const card = document.createElement('div');
                     card.className = 'employee-card card';
+                    if (emp.activo === 0) card.style.opacity = '0.6'; // Visualmente inactivo
+                    
                     card.innerHTML = `
                         <div class="emp-info">
-                            <strong>${emp.nombre}</strong>
+                            <strong>${emp.nombre} ${emp.activo === 0 ? '(Inactivo)' : ''}</strong>
                             <span>${emp.tlf || 'Sin tlf'}</span>
                         </div>
                         <div class="emp-actions">
@@ -108,7 +111,8 @@ window.HorariosApp = window.HorariosApp || {};
             document.getElementById('emp-nombre').value = emp.nombre;
             document.getElementById('emp-tlf').value = emp.tlf || '';
             document.getElementById('emp-direccion').value = emp.direccion || '';
-            document.getElementById('emp-vehiculo').checked = emp.vehiculo;
+            document.getElementById('emp-vehiculo').checked = emp.vehiculo === 1;
+            document.getElementById('emp-activo').checked = emp.activo === 1;
 
             document.getElementById('form-employee').classList.remove('hidden');
             document.getElementById('btn-add-employee').classList.add('hidden');
