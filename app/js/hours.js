@@ -230,7 +230,7 @@ window.HorariosApp = window.HorariosApp || {};
         },
 
         deleteNote: async function(id) {
-            if (confirm('¿Eliminar esta nota?')) {
+            if (confirm('¿Estás seguro de que deseas eliminar esta nota? Esta acción no se puede deshacer.')) {
                 try {
                     await window.HorariosApp.db.remove('day_notes', id);
                     await this.loadDayNotes();
