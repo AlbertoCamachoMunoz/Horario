@@ -41,6 +41,11 @@ yarn-error.log*
 *.code-workspace
 
 
+# Build Tools / Services
+.netlify/
+android/
+capacitor.config.json
+
 # Engram AI agent memory
 .engram/
 GEMINI.md

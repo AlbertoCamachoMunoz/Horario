@@ -3,13 +3,21 @@ const ASSETS_TO_CACHE = [
   './',
   'index.html',
   'styles.css',
-  'js/app.js',
+  'manifest.json',
+  'logo.svg',
+  'icon-192.png',
+  'icon-512.png',
   'js/db.js',
   'js/ui.js',
   'js/calendar.js',
   'js/employees.js',
+  'js/prices.js',
+  'js/settings.js',
   'js/hours.js',
-  'manifest.json'
+  'js/reports.js',
+  'js/employee-detail.js',
+  'js/cleanup.js',
+  'js/app.js'
 ];
 
 self.addEventListener('install', event => {
