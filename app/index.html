@@ -153,20 +153,22 @@
                 <!-- Se cargarán las notas dinámicamente -->
             </div>
 
-            <div class="card">
-                <div class="form-group">
-                    <label>Horas para TODOS los empleados:</label>
-                    <div style="display:flex; gap:10px;">
-                        <input type="number" id="all-employees-hours" placeholder="Ej: 8" min="1">
-                        <button id="btn-apply-all" class="btn-primary">Aplicar</button>
+            <div id="work-hours-section">
+                <div class="card">
+                    <div class="form-group">
+                        <label>Horas para TODOS los empleados:</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="number" id="all-employees-hours" placeholder="Ej: 8" min="1">
+                            <button id="btn-apply-all" class="btn-primary">Aplicar</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div id="day-employees-list" class="list-container">
-                <!-- Se cargará la lista de empleados con sus inputs de horas -->
-            </div>
-            <div class="form-actions" style="margin-top: 20px;">
-                <button id="btn-save-hours" class="btn-primary" style="width:100%; padding:15px;">GUARDAR HORAS</button>
+                <div id="day-employees-list" class="list-container">
+                    <!-- Se cargará la lista de empleados con sus inputs de horas -->
+                </div>
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button id="btn-save-hours" class="btn-primary" style="width:100%; padding:15px;">GUARDAR HORAS</button>
+                </div>
             </div>
 
             <!-- FORMULARIO DE AÑADIR NOTAS COLAPSABLE -->

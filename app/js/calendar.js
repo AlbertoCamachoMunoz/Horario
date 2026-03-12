@@ -80,7 +80,12 @@ window.HorariosApp = window.HorariosApp || {};
 
                     const dayDiv = document.createElement('div');
                     dayDiv.className = 'calendar-day';
-                    if (this.isToday(year, month, d)) dayDiv.classList.add('today');
+                    
+                    const isToday = this.isToday(year, month, d);
+                    if (isToday) dayDiv.classList.add('today');
+                    
+                    const isFuture = this.isFuture(year, month, d);
+                    if (isFuture) dayDiv.classList.add('future');
                     
                     // Lógica visual de notas (Stripes o Prioridad)
                     if (dayNotes.length > 0) {
@@ -153,6 +158,13 @@ window.HorariosApp = window.HorariosApp || {};
         isToday: function(y, m, d) {
             const today = new Date();
             return today.getFullYear() === y && today.getMonth() === m && today.getDate() === d;
+        },
+
+        isFuture: function(y, m, d) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const date = new Date(y, m, d);
+            return date > today;
         }
     };
 

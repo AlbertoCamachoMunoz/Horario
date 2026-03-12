@@ -51,6 +51,20 @@ window.HorariosApp = window.HorariosApp || {};
             currentSelectedDate = date;
             document.getElementById('selected-day-title').textContent = this.formatDateDisplay(date);
             
+            // Comprobar si es fecha futura
+            const [y, m, d] = date.split('-').map(Number);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const selectedDate = new Date(y, m - 1, d);
+            const isFuture = selectedDate > today;
+
+            const workHoursSection = document.getElementById('work-hours-section');
+            if (isFuture) {
+                workHoursSection.classList.add('hidden');
+            } else {
+                workHoursSection.classList.remove('hidden');
+            }
+
             // Cargar horas por defecto desde configuración
             let defaultHours = '';
             try {
@@ -124,21 +138,29 @@ window.HorariosApp = window.HorariosApp || {};
                 const existingMap = {};
                 existing.forEach(h => existingMap[h.employee_id] = h);
 
+                let modificationToExisting = false;
                 let modificationToPaid = false;
+
                 inputs.forEach(input => {
                     const empId = parseInt(input.dataset.empId);
                     const newHours = parseInt(input.value);
                     const currentRecord = existingMap[empId];
 
-                    if (currentRecord && currentRecord.paid) {
-                        if (isNaN(newHours) || newHours === 0 || newHours !== currentRecord.hours) {
-                            modificationToPaid = true;
+                    if (currentRecord) {
+                        const hoursChanged = isNaN(newHours) || newHours === 0 || newHours !== currentRecord.hours;
+                        if (hoursChanged) {
+                            modificationToExisting = true;
+                            if (currentRecord.paid) modificationToPaid = true;
                         }
                     }
                 });
 
                 if (modificationToPaid) {
                     if (!confirm('Vas a modificar horas que ya han sido marcadas como PAGADAS. Si continúas, esas horas específicas se resetearán a "Pendiente de Pago". ¿Deseas continuar?')) {
+                        return;
+                    }
+                } else if (modificationToExisting) {
+                    if (!confirm('¿Deseas modificar las horas ya existentes para este día?')) {
                         return;
                     }
                 }
