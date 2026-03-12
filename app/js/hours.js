@@ -95,6 +95,15 @@ window.HorariosApp = window.HorariosApp || {};
             try {
                 // Primero borramos las horas existentes para este día para sobrescribir
                 const existing = await window.HorariosApp.db.getByIndex('work_hours', 'date', currentSelectedDate);
+                
+                // Si ya había horas pagadas, avisamos (opcionalmente)
+                const hasPaidHours = existing.some(h => h.paid);
+                if (hasPaidHours) {
+                    if (!confirm('Este día contiene horas marcadas como PAGADAS. Si continúas, se reseteará el estado a "No Pagado" para las horas modificadas. ¿Deseas continuar?')) {
+                        return;
+                    }
+                }
+
                 for (let h of existing) {
                     await window.HorariosApp.db.remove('work_hours', h.id);
                 }
@@ -106,7 +115,8 @@ window.HorariosApp = window.HorariosApp || {};
                         promises.push(window.HorariosApp.db.add('work_hours', {
                             employee_id: parseInt(input.dataset.empId),
                             date: currentSelectedDate,
-                            hours: hours
+                            hours: hours,
+                            paid: false // Siempre se guardan como no pagadas al añadir/editar
                         }));
                     }
                 });

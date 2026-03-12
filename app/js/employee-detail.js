@@ -83,40 +83,36 @@ window.HorariosApp = window.HorariosApp || {};
                 const allHours = await window.HorariosApp.db.getByIndex('work_hours', 'employee_id', selectedEmployee.id);
                 const prices = await window.HorariosApp.db.getAll('price_hour');
                 
+                // Obtener configuración de lógica de pagos
+                let onlyUnpaid = false;
+                try {
+                    const setting = await window.HorariosApp.db.getById('settings', 'only_unpaid_logic');
+                    onlyUnpaid = setting && (setting.value === 'true' || setting.value === true);
+                } catch(e) {}
+
                 const monthStr = `${year}-${String(month).padStart(2, '0')}`;
                 const monthHours = allHours.filter(h => h.date.startsWith(monthStr));
-
-                // 1. Resumen superior
-                let totalH = 0;
-                let totalC = 0;
-                monthHours.forEach(h => {
-                    totalH += h.hours;
-                    totalC += h.hours * this.getPriceForDate(prices, h.date);
-                });
-
-                summaryElement.innerHTML = `
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            <span class="stat-value">${totalH}h</span>
-                            <span class="stat-label">Total Horas</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-value">${totalC.toFixed(2)}€</span>
-                            <span class="stat-label">Coste Total</span>
-                        </div>
-                    </div>
-                `;
 
                 // 2. Desglose semanal
                 weeksList.innerHTML = '';
                 const weeks = this.groupHoursByWeek(year, month, monthHours);
 
+                let totalH = 0;
+                let totalC = 0;
+
                 weeks.forEach(week => {
                     let weekH = 0;
                     let weekC = 0;
                     week.days.forEach(d => {
-                        weekH += d.hours;
-                        weekC += d.hours * this.getPriceForDate(prices, d.date);
+                        if (!onlyUnpaid || !d.paid) {
+                            const price = this.getPriceForDate(prices, d.date);
+                            const cost = d.hours * price;
+                            
+                            weekH += d.hours;
+                            weekC += cost;
+                            totalH += d.hours;
+                            totalC += cost;
+                        }
                     });
 
                     const block = document.createElement('div');
@@ -124,18 +120,35 @@ window.HorariosApp = window.HorariosApp || {};
                     
                     let daysHtml = week.days.map(d => {
                         const dayNum = d.date.split('-')[2];
+                        const isPaid = d.paid === true;
+                        const rowClass = isPaid ? 'row-paid' : 'row-unpaid';
+                        const checkChecked = isPaid ? 'checked' : '';
+
                         return `
-                            <div class="day-row">
-                                <span>Día ${dayNum}</span>
-                                <span>${d.hours}h</span>
+                            <div class="day-row ${rowClass}">
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <input type="checkbox" class="pay-checkbox" ${checkChecked} onchange="HorariosApp.employeeDetail.toggleDayPay(${d.id}, this.checked)">
+                                    <span>Día ${dayNum}</span>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="status-badge ${isPaid ? 'badge-paid' : 'badge-unpaid'}">${isPaid ? 'Pagado' : 'Pendiente'}</span>
+                                    <span style="font-weight:bold; width:30px; text-align:right;">${d.hours}h</span>
+                                </div>
                             </div>
                         `;
                     }).join('');
 
+                    const weekDates = week.days.map(d => d.date).join(',');
+                    const rangeText = `${week.start.getDate()} ${this.getMonthNameShort(week.start.getMonth())} - ${week.end.getDate()} ${this.getMonthNameShort(week.end.getMonth())}`;
+
                     block.innerHTML = `
                         <div class="week-header">
-                            <strong>Semana ${week.weekNum}</strong>
-                            <span>${weekH}h | ${weekC.toFixed(2)}€</span>
+                            <div>
+                                <strong>Semana ${week.weekNum}</strong>
+                                <div style="font-size:0.7rem; opacity:0.8;">${rangeText}</div>
+                                <div style="font-size:0.7rem; font-weight:bold; color:var(--primary-dark);">${weekH}h | ${weekC.toFixed(2)}€</div>
+                            </div>
+                            <button class="btn-pay-week" onclick="HorariosApp.employeeDetail.payPeriod('${weekDates}', 'week')">PAGAR SEMANA</button>
                         </div>
                         <div class="week-content">
                             ${daysHtml || '<p style="padding:10px;color:#888;font-size:0.8rem;">Sin registros</p>'}
@@ -143,6 +156,37 @@ window.HorariosApp = window.HorariosApp || {};
                     `;
                     weeksList.appendChild(block);
                 });
+
+                // 3. Resumen final (Movido al final)
+                const summaryTitle = onlyUnpaid ? 'Pendiente de Pago' : 'Total del Mes';
+                summaryElement.innerHTML = `
+                    <div style="text-align:center; margin-bottom:10px; font-weight:bold; font-size:0.9rem; text-transform:uppercase; letter-spacing:1px;">${summaryTitle}</div>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <span class="stat-value">${totalH}h</span>
+                            <span class="stat-label">Horas</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-value">${totalC.toFixed(2)}€</span>
+                            <span class="stat-label">Coste</span>
+                        </div>
+                    </div>
+                `;
+                // Mover el elemento de resumen al final del contenedor de la lista si es necesario
+                // Pero como summaryElement es un div fijo arriba en el HTML, lo ideal es moverlo en el HTML o inyectarlo dinámicamente.
+                // Según el index.html, employee-stats-summary está ANTES de employee-weeks-list. 
+                // Lo inyectaré al final de weeksList en lugar de en summaryElement.
+                
+                const finalSummaryCard = document.createElement('div');
+                finalSummaryCard.className = 'card';
+                finalSummaryCard.style.background = 'var(--primary-color)';
+                finalSummaryCard.style.color = 'white';
+                finalSummaryCard.style.marginTop = '20px';
+                finalSummaryCard.innerHTML = summaryElement.innerHTML;
+                
+                weeksList.appendChild(finalSummaryCard);
+                summaryElement.innerHTML = ''; // Limpiar el de arriba
+                summaryElement.style.display = 'none';
 
             } catch (error) {
                 console.error(error);
@@ -191,6 +235,57 @@ window.HorariosApp = window.HorariosApp || {};
             const sortedPrices = [...prices].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
             const price = sortedPrices.find(p => p.start_date <= date);
             return price ? price.price_hour : 0;
+        },
+
+        getMonthNameShort: function(m) {
+            return ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"][m];
+        },
+
+        toggleDayPay: async function(id, isPaid) {
+            try {
+                const record = await window.HorariosApp.db.getById('work_hours', id);
+                if (record) {
+                    record.paid = isPaid;
+                    await window.HorariosApp.db.update('work_hours', record);
+                    this.renderDashboard(); // Refrescar vista
+                }
+            } catch (error) {
+                console.error(error);
+                window.HorariosApp.ui.showToast('Error al actualizar pago', 'error');
+            }
+        },
+
+        payPeriod: async function(value, type) {
+            const confirmMsg = type === 'month' 
+                ? '¿Marcar TODAS las horas de este mes como PAGADAS?' 
+                : '¿Marcar las horas de esta semana como PAGADAS?';
+            
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const allHours = await window.HorariosApp.db.getByIndex('work_hours', 'employee_id', selectedEmployee.id);
+                let toUpdate = [];
+
+                if (type === 'month') {
+                    // value es el mes en formato YYYY-MM
+                    toUpdate = allHours.filter(h => h.date.startsWith(value) && !h.paid);
+                } else if (type === 'week') {
+                    // value es una cadena separada por comas de fechas
+                    const dates = value.split(',');
+                    toUpdate = allHours.filter(h => dates.includes(h.date) && !h.paid);
+                }
+
+                for (let h of toUpdate) {
+                    h.paid = true;
+                    await window.HorariosApp.db.update('work_hours', h);
+                }
+
+                window.HorariosApp.ui.showToast('Pago registrado con éxito', 'success');
+                this.renderDashboard();
+            } catch (error) {
+                console.error(error);
+                window.HorariosApp.ui.showToast('Error al procesar pagos', 'error');
+            }
         }
     };
 

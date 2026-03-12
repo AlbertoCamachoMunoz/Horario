@@ -33,6 +33,11 @@ window.HorariosApp = window.HorariosApp || {};
                 if (defaultHours) {
                     document.getElementById('set-default-hours').value = defaultHours.value;
                 }
+
+                const unpaidLogic = await window.HorariosApp.db.getById('settings', 'only_unpaid_logic');
+                if (unpaidLogic) {
+                    document.getElementById('set-unpaid-logic').checked = (unpaidLogic.value === 'true' || unpaidLogic.value === true);
+                }
             } catch (error) {
                 console.error('Error cargando configuración:', error);
             }
@@ -40,9 +45,11 @@ window.HorariosApp = window.HorariosApp || {};
 
         saveSettings: async function() {
             const defaultHours = document.getElementById('set-default-hours').value;
+            const unpaidLogic = document.getElementById('set-unpaid-logic').checked;
             
             try {
                 await window.HorariosApp.db.update('settings', { key: 'default_hours', value: defaultHours });
+                await window.HorariosApp.db.update('settings', { key: 'only_unpaid_logic', value: unpaidLogic });
                 window.HorariosApp.ui.showToast('Configuración guardada', 'success');
             } catch (error) {
                 console.error(error);
