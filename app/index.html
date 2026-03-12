@@ -22,10 +22,10 @@
     <nav id="side-menu">
         <ul>
             <li><a href="#" onclick="HorariosApp.ui.switchView('calendar'); return false;">Calendario</a></li>
-            <li><a href="#" onclick="HorariosApp.ui.switchView('employees'); return false;">Gestionar Empleados</a></li>
-            <li><a href="#" onclick="HorariosApp.ui.switchView('prices'); return false;">Precios por Hora</a></li>
-            <li><a href="#" onclick="if(HorariosApp.reports) HorariosApp.reports.generateReport(); HorariosApp.ui.switchView('reports'); return false;">Informes Mensuales</a></li>
-            <li><a href="#" onclick="HorariosApp.employeeDetail.loadEmployeeList(); HorariosApp.ui.switchView('employee-reports'); return false;">Detalle Empleados</a></li>
+            <li><a href="#" onclick="HorariosApp.employeeDetail.loadEmployeeList(); HorariosApp.ui.switchView('employee-reports'); return false;">Detalle Empleado</a></li>
+            <li><a href="#" onclick="if(HorariosApp.reports) HorariosApp.reports.generateReport(); HorariosApp.ui.switchView('reports'); return false;">Histórico</a></li>
+            <li><a href="#" onclick="HorariosApp.ui.switchView('employees'); return false;">Configurar Empleados</a></li>
+            <li><a href="#" onclick="HorariosApp.ui.switchView('prices'); return false;">Configurar Precio/Hora</a></li>
             <li><a href="#" onclick="HorariosApp.ui.switchView('settings'); return false;">Configuración</a></li>
         </ul>
     </nav>
@@ -65,7 +65,7 @@
 
         <div id="view-reports" class="view">
             <div class="view-header">
-                <h2>Informes Detallados</h2>
+                <h2>Histórico de Pagos</h2>
             </div>
             <div class="card" style="display:flex; flex-direction: column; gap:10px;">
                 <div style="display:flex; gap:5px;">
@@ -74,6 +74,11 @@
                 </div>
                 <select id="report-week" class="form-control" style="width:100%; padding:8px;">
                     <option value="all">Todo el mes (por semanas)</option>
+                </select>
+                <select id="report-status" class="form-control" style="width:100%; padding:8px;">
+                    <option value="all">Todos los registros (Pagados y Pendientes)</option>
+                    <option value="unpaid">Solo Pendientes de Pago</option>
+                    <option value="paid">Solo Pagados (Histórico)</option>
                 </select>
                 <button id="btn-generate-report" class="btn-primary" style="width:100%;">GENERAR INFORME</button>
             </div>

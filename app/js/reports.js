@@ -14,6 +14,7 @@ window.HorariosApp = window.HorariosApp || {};
         setupSelectors: function() {
             const monthSelect = document.getElementById('report-month');
             const yearSelect = document.getElementById('report-year');
+            const statusSelect = document.getElementById('report-status');
             
             const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
                 "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -35,6 +36,7 @@ window.HorariosApp = window.HorariosApp || {};
 
             monthSelect.value = new Date().getMonth() + 1;
             yearSelect.value = currentYear;
+            statusSelect.value = "all";
 
             this.updateWeeksSelector();
         },
@@ -46,6 +48,9 @@ window.HorariosApp = window.HorariosApp || {};
             });
             document.getElementById('report-year').addEventListener('change', () => {
                 this.updateWeeksSelector();
+                this.generateReport();
+            });
+            document.getElementById('report-status').addEventListener('change', () => {
                 this.generateReport();
             });
             document.getElementById('btn-generate-report').addEventListener('click', () => this.generateReport());
@@ -94,18 +99,12 @@ window.HorariosApp = window.HorariosApp || {};
             const month = parseInt(document.getElementById('report-month').value);
             const year = parseInt(document.getElementById('report-year').value);
             const weekIdx = document.getElementById('report-week').value;
+            const statusFilter = document.getElementById('report-status').value;
             const content = document.getElementById('reports-content');
             
             content.innerHTML = '<p class="empty-msg">Generando desglose...</p>';
 
             try {
-                // Obtener configuración de lógica de pagos
-                let onlyUnpaid = false;
-                try {
-                    const setting = await window.HorariosApp.db.getById('settings', 'only_unpaid_logic');
-                    onlyUnpaid = setting && (setting.value === 'true' || setting.value === true);
-                } catch(e) {}
-
                 const employees = await window.HorariosApp.db.getAll('employees');
                 const workHours = await window.HorariosApp.db.getAll('work_hours');
                 const prices = await window.HorariosApp.db.getAll('price_hour');
@@ -117,23 +116,17 @@ window.HorariosApp = window.HorariosApp || {};
                 let totalGlobal = 0;
                 let html = '';
 
-                // Añadir botón de liquidación masiva si estamos viendo todo el mes
-                if (weekIdx === 'all') {
-                    html += `
-                        <div class="card" style="background:#fff8e1; border:1px solid #ffe082; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:0.85rem; font-weight:bold; color:#856404;">Gestión de Pagos</span>
-                            <button class="btn-primary" style="font-size:0.75rem; padding:8px 12px;" onclick="HorariosApp.reports.payAllEmployees('${monthStr}')">LIQUIDAR MES (TODOS)</button>
-                        </div>
-                    `;
-                }
+                // El bloque de "Gestión de Pagos" ha sido eliminado según Spec 08
 
                 for (let emp of employees) {
                     // Filtrar horas del empleado para este mes
                     let empHours = workHours.filter(h => h.employee_id === emp.id && h.date.startsWith(monthStr));
                     
-                    // Si la lógica de solo no pagados está activa, filtramos empHours
-                    if (onlyUnpaid) {
+                    // Aplicar filtro de estado (pagado/pendiente)
+                    if (statusFilter === 'unpaid') {
                         empHours = empHours.filter(h => !h.paid);
+                    } else if (statusFilter === 'paid') {
+                        empHours = empHours.filter(h => h.paid);
                     }
 
                     if (empHours.length === 0) continue;
@@ -141,7 +134,6 @@ window.HorariosApp = window.HorariosApp || {};
                     let empHtml = `<div class="card" style="border-left: 5px solid var(--primary-color);">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                             <h3 style="margin:0; color: var(--primary-color);">${emp.nombre}</h3>
-                            ${onlyUnpaid ? '<span class="status-badge badge-unpaid">Pendiente</span>' : ''}
                         </div>`;
                     
                     let empTotalCost = 0;
@@ -170,7 +162,7 @@ window.HorariosApp = window.HorariosApp || {};
                                 weekC += cost;
                                 const dayNum = h.date.split('-')[2];
                                 empHtml += `<div style="display:flex; justify-content:space-between; font-size:0.8rem; padding:2px 10px;">
-                                    <span>Día ${dayNum} ${h.paid ? '<span style="color:#28a745;">(P)</span>' : ''}</span>
+                                    <span>Día ${dayNum} ${h.paid ? '<span style="color:#28a745; font-weight:bold;">(PAGADO)</span>' : '<span style="color:#f44336; font-weight:bold;">(PENDIENTE)</span>'}</span>
                                     <span>${h.hours}h x ${price}€ = ${cost.toFixed(2)}€</span>
                                 </div>`;
                             });
@@ -193,9 +185,14 @@ window.HorariosApp = window.HorariosApp || {};
                     }
                 }
 
+                // Título de resumen según filtro
+                let summaryLabel = 'TOTAL GENERAL';
+                if (statusFilter === 'unpaid') summaryLabel = 'TOTAL PENDIENTE';
+                if (statusFilter === 'paid') summaryLabel = 'TOTAL PAGADO (HISTÓRICO)';
+
                 html += `
                     <div class="card" style="background: var(--primary-dark); color: white; text-align: center;">
-                        <div style="font-size:0.8rem; opacity:0.8; margin-bottom:5px;">${onlyUnpaid ? 'PENDIENTE TOTAL' : 'TOTAL GENERAL'}</div>
+                        <div style="font-size:0.8rem; opacity:0.8; margin-bottom:5px;">${summaryLabel}</div>
                         <h2 style="margin:0;">${totalGlobal.toFixed(2)}€</h2>
                         <small>${weekIdx === 'all' ? 'Mes completo' : 'Semana seleccionada'}</small>
                     </div>`;
@@ -205,29 +202,6 @@ window.HorariosApp = window.HorariosApp || {};
             } catch (error) {
                 console.error(error);
                 content.innerHTML = '<p class="empty-msg">Error al generar informe.</p>';
-            }
-        },
-
-        payAllEmployees: async function(monthStr) {
-            if (!confirm(`¿Marcar TODAS las horas de TODOS los empleados del mes ${monthStr} como PAGADAS? Esta acción no se puede deshacer fácilmente.`)) {
-                return;
-            }
-
-            try {
-                window.HorariosApp.ui.showToast('Procesando pagos...', 'info');
-                const workHours = await window.HorariosApp.db.getAll('work_hours');
-                const toUpdate = workHours.filter(h => h.date.startsWith(monthStr) && !h.paid);
-
-                for (let h of toUpdate) {
-                    h.paid = true;
-                    await window.HorariosApp.db.update('work_hours', h);
-                }
-
-                window.HorariosApp.ui.showToast(`Se han pagado ${toUpdate.length} registros`, 'success');
-                this.generateReport(); // Refrescar informe
-            } catch (error) {
-                console.error(error);
-                window.HorariosApp.ui.showToast('Error al procesar pagos masivos', 'error');
             }
         },
 
