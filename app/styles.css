@@ -453,13 +453,11 @@ main {
 
 /* Estados de Pago */
 .row-unpaid {
-    background-color: #fff3cd !important; /* Amarillo suave */
-    border-left: 4px solid #ffc107;
+    /* Fondo eliminado según preferencia del usuario */
 }
 
 .row-paid {
-    background-color: #d4edda !important; /* Verde suave */
-    border-left: 4px solid #28a745;
+    /* Fondo eliminado según preferencia del usuario */
 }
 
 .status-badge {

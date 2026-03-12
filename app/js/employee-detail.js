@@ -103,15 +103,24 @@ window.HorariosApp = window.HorariosApp || {};
                 weeks.forEach(week => {
                     let weekH = 0;
                     let weekC = 0;
+                    let weekUnpaidH = 0;
+                    let weekUnpaidC = 0;
+
                     week.days.forEach(d => {
+                        const price = this.getPriceForDate(prices, d.date);
+                        const cost = d.hours * price;
+
                         if (!onlyUnpaid || !d.paid) {
-                            const price = this.getPriceForDate(prices, d.date);
-                            const cost = d.hours * price;
-                            
                             weekH += d.hours;
                             weekC += cost;
                             totalH += d.hours;
                             totalC += cost;
+                        }
+
+                        // Calcular siempre lo pendiente para el subtotal inferior
+                        if (!d.paid) {
+                            weekUnpaidH += d.hours;
+                            weekUnpaidC += cost;
                         }
                     });
 
@@ -141,6 +150,14 @@ window.HorariosApp = window.HorariosApp || {};
                     const weekDates = week.days.map(d => d.date).join(',');
                     const rangeText = `${week.start.getDate()} ${this.getMonthNameShort(week.start.getMonth())} - ${week.end.getDate()} ${this.getMonthNameShort(week.end.getMonth())}`;
 
+                    // Añadir subtotal pendiente si hay horas sin pagar
+                    const unpaidFooter = weekUnpaidH > 0 
+                        ? `<div class="week-unpaid-subtotal" style="padding: 12px 15px; text-align: right; border-top: 1px dashed #ccc; background: #fff9f9; margin-top: 5px; border-radius: 0 0 8px 8px;">
+                             <span style="color: #666; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Pendiente esta semana:</span> 
+                             <div style="color: var(--error-color); font-weight: bold; font-size: 1.1rem;">${weekUnpaidH}h = ${weekUnpaidC.toFixed(2)}€</div>
+                           </div>`
+                        : '';
+
                     block.innerHTML = `
                         <div class="week-header">
                             <div>
@@ -150,8 +167,9 @@ window.HorariosApp = window.HorariosApp || {};
                             </div>
                             <button class="btn-pay-week" onclick="HorariosApp.employeeDetail.payPeriod('${weekDates}', 'week')">PAGAR SEMANA</button>
                         </div>
-                        <div class="week-content">
+                        <div class="week-content" style="padding-bottom: 0;">
                             ${daysHtml || '<p style="padding:10px;color:#888;font-size:0.8rem;">Sin registros</p>'}
+                            ${unpaidFooter}
                         </div>
                     `;
                     weeksList.appendChild(block);
