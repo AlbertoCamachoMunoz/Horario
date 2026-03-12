@@ -6,6 +6,7 @@ window.HorariosApp = window.HorariosApp || {};
 
 (function() {
     let currentSelectedDate = '';
+    let selectedNoteType = 'info';
 
     const hoursModule = {
         init: function() {
@@ -15,6 +16,8 @@ window.HorariosApp = window.HorariosApp || {};
         setupEventListeners: function() {
             const btnApplyAll = document.getElementById('btn-apply-all');
             const btnSave = document.getElementById('btn-save-hours');
+            const btnAddNote = document.getElementById('btn-add-note');
+            const noteTypeBtns = document.querySelectorAll('.btn-note-type');
 
             btnApplyAll.addEventListener('click', () => {
                 const hours = document.getElementById('all-employees-hours').value;
@@ -27,6 +30,21 @@ window.HorariosApp = window.HorariosApp || {};
             btnSave.addEventListener('click', async () => {
                 await this.saveDayHours();
             });
+
+            btnAddNote.addEventListener('click', async () => {
+                await this.addNote();
+            });
+
+            noteTypeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    noteTypeBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    selectedNoteType = btn.dataset.type;
+                });
+            });
+
+            // Seleccionar info por defecto
+            document.querySelector('.type-info').classList.add('active');
         },
 
         openDay: async function(date) {
@@ -41,9 +59,19 @@ window.HorariosApp = window.HorariosApp || {};
             } catch(e) {}
             
             document.getElementById('all-employees-hours').value = defaultHours;
+            document.getElementById('note-content').value = '';
+            
+            // Colapsar sección de notas por defecto
+            document.getElementById('notes-section').classList.add('collapsed');
             
             window.HorariosApp.ui.switchView('day-hours');
             await this.loadDayEmployees();
+            await this.loadDayNotes();
+        },
+
+        toggleNotes: function() {
+            const section = document.getElementById('notes-section');
+            section.classList.toggle('collapsed');
         },
 
         formatDateDisplay: function(dateStr) {
@@ -58,7 +86,6 @@ window.HorariosApp = window.HorariosApp || {};
 
             try {
                 const employees = await window.HorariosApp.db.getByIndex('employees', 'activo', 1);
-                // También necesitamos las horas ya guardadas para este día si existen
                 const existingHours = await window.HorariosApp.db.getByIndex('work_hours', 'date', currentSelectedDate);
                 const hoursMap = {};
                 existingHours.forEach(h => hoursMap[h.employee_id] = h.hours);
@@ -93,12 +120,10 @@ window.HorariosApp = window.HorariosApp || {};
             const promises = [];
 
             try {
-                // Obtenemos las horas existentes para este día
                 const existing = await window.HorariosApp.db.getByIndex('work_hours', 'date', currentSelectedDate);
                 const existingMap = {};
                 existing.forEach(h => existingMap[h.employee_id] = h);
 
-                // Identificar cambios que afectan a horas PAGADAS antes de procesar
                 let modificationToPaid = false;
                 inputs.forEach(input => {
                     const empId = parseInt(input.dataset.empId);
@@ -106,7 +131,6 @@ window.HorariosApp = window.HorariosApp || {};
                     const currentRecord = existingMap[empId];
 
                     if (currentRecord && currentRecord.paid) {
-                        // Si el registro estaba pagado y se cambian las horas o se borran (newHours NaN o 0)
                         if (isNaN(newHours) || newHours === 0 || newHours !== currentRecord.hours) {
                             modificationToPaid = true;
                         }
@@ -119,22 +143,19 @@ window.HorariosApp = window.HorariosApp || {};
                     }
                 }
 
-                // Procesar cada entrada de empleado
                 for (const input of inputs) {
                     const empId = parseInt(input.dataset.empId);
                     const newHours = parseInt(input.value);
                     const currentRecord = existingMap[empId];
 
                     if (!isNaN(newHours) && newHours > 0) {
-                        // Si hay un cambio o es nuevo registro
                         if (!currentRecord || currentRecord.hours !== newHours) {
                             const data = {
                                 employee_id: empId,
                                 date: currentSelectedDate,
                                 hours: newHours,
-                                paid: false // Al cambiar las horas, siempre pasa a no pagado
+                                paid: false
                             };
-
                             if (currentRecord) {
                                 data.id = currentRecord.id;
                                 promises.push(window.HorariosApp.db.update('work_hours', data));
@@ -142,9 +163,7 @@ window.HorariosApp = window.HorariosApp || {};
                                 promises.push(window.HorariosApp.db.add('work_hours', data));
                             }
                         }
-                        // Si el registro existe y las horas son IGUALES, no tocamos nada (mantiene su estado 'paid')
                     } else if (currentRecord) {
-                        // Si el input está vacío pero había registro, lo borramos
                         promises.push(window.HorariosApp.db.remove('work_hours', currentRecord.id));
                     }
                 }
@@ -152,12 +171,74 @@ window.HorariosApp = window.HorariosApp || {};
                 await Promise.all(promises);
                 window.HorariosApp.ui.showToast('Horas guardadas con éxito', 'success');
                 window.HorariosApp.ui.switchView('calendar');
-                // Refrescar calendario para mostrar puntos de horas
                 if (window.HorariosApp.calendar) window.HorariosApp.calendar.render();
 
             } catch (error) {
                 console.error(error);
                 window.HorariosApp.ui.showToast('Error al guardar horas', 'error');
+            }
+        },
+
+        loadDayNotes: async function() {
+            const notesList = document.getElementById('day-notes-list');
+            notesList.innerHTML = '<p style="color:#888; font-size:0.8rem;">Cargando notas...</p>';
+
+            try {
+                const notes = await window.HorariosApp.db.getByIndex('day_notes', 'date', currentSelectedDate);
+                
+                if (notes.length === 0) {
+                    notesList.innerHTML = '<p style="color:#888; font-size:0.8rem;">No hay notas para este día.</p>';
+                    return;
+                }
+
+                notesList.innerHTML = '';
+                notes.forEach(note => {
+                    const div = document.createElement('div');
+                    div.className = `note-item note-${note.type}`;
+                    div.innerHTML = `
+                        <div style="font-size:0.9rem;">${note.content}</div>
+                        <button class="note-delete-btn" onclick="HorariosApp.hours.deleteNote(${note.id})">&times;</button>
+                    `;
+                    notesList.appendChild(div);
+                });
+            } catch (error) {
+                console.error(error);
+                notesList.innerHTML = '<p style="color:var(--error-color); font-size:0.8rem;">Error al cargar notas.</p>';
+            }
+        },
+
+        addNote: async function() {
+            const content = document.getElementById('note-content').value.trim();
+            if (!content) return;
+
+            const note = {
+                date: currentSelectedDate,
+                content: content,
+                type: selectedNoteType
+            };
+
+            try {
+                await window.HorariosApp.db.add('day_notes', note);
+                document.getElementById('note-content').value = '';
+                await this.loadDayNotes();
+                // Refrescar calendario para actualizar visualización de notas
+                if (window.HorariosApp.calendar) window.HorariosApp.calendar.render();
+            } catch (error) {
+                console.error(error);
+                window.HorariosApp.ui.showToast('Error al añadir nota', 'error');
+            }
+        },
+
+        deleteNote: async function(id) {
+            if (confirm('¿Eliminar esta nota?')) {
+                try {
+                    await window.HorariosApp.db.remove('day_notes', id);
+                    await this.loadDayNotes();
+                    if (window.HorariosApp.calendar) window.HorariosApp.calendar.render();
+                } catch (error) {
+                    console.error(error);
+                    window.HorariosApp.ui.showToast('Error al eliminar nota', 'error');
+                }
             }
         }
     };

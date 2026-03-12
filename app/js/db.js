@@ -6,7 +6,7 @@ window.HorariosApp = window.HorariosApp || {};
 
 (function() {
     const DB_NAME = 'HorariosDB';
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
     let db;
 
     const dbModule = {
@@ -47,6 +47,11 @@ window.HorariosApp = window.HorariosApp || {};
 
                     if (!db.objectStoreNames.contains('settings')) {
                         db.createObjectStore('settings', { keyPath: 'key' });
+                    }
+
+                    if (!db.objectStoreNames.contains('day_notes')) {
+                        const notesStore = db.createObjectStore('day_notes', { keyPath: 'id', autoIncrement: true });
+                        notesStore.createIndex('date', 'date', { unique: false });
                     }
 
                     console.log('Estructura de base de datos creada/actualizada');
