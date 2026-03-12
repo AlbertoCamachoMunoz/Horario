@@ -421,6 +421,26 @@ main {
     justify-content: space-between;
     align-items: center;
     border-bottom: 2px solid var(--primary-color);
+    cursor: pointer; /* Indicar que es clicable */
+    user-select: none;
+}
+
+/* Indicador de colapso */
+.week-header::after {
+    content: '▲';
+    font-size: 0.7rem;
+    margin-left: 10px;
+    transition: transform 0.3s;
+    opacity: 0.6;
+}
+
+.week-block.collapsed .week-header::after {
+    transform: rotate(180deg);
+}
+
+.week-block.collapsed .week-header {
+    border-radius: 8px;
+    border-bottom: none;
 }
 
 .week-content {
@@ -428,6 +448,28 @@ main {
     border-radius: 0 0 8px 8px;
     padding: 5px 0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.week-block.collapsed .week-content {
+    display: none;
+}
+
+/* Semanas vacías / deshabilitadas */
+.week-block.empty .week-header {
+    background: #f0f0f0;
+    border-bottom-color: #ccc;
+    cursor: default;
+    opacity: 0.7;
+}
+
+.week-block.empty .week-header::after {
+    display: none; /* Quitar flecha de despliegue */
+}
+
+.week-block.empty .btn-pay-week {
+    display: none; /* Quitar botón de pago */
 }
 
 .day-row {

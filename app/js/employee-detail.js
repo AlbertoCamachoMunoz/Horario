@@ -127,6 +127,15 @@ window.HorariosApp = window.HorariosApp || {};
                     const block = document.createElement('div');
                     block.className = 'week-block';
                     
+                    const isWeekEmpty = week.days.length === 0;
+
+                    if (isWeekEmpty) {
+                        block.classList.add('empty', 'collapsed');
+                    } else if (weekUnpaidH === 0) {
+                        // Colapsar por defecto si todo está pagado (pero tiene registros)
+                        block.classList.add('collapsed');
+                    }
+
                     let daysHtml = week.days.map(d => {
                         const dayNum = d.date.split('-')[2];
                         const isPaid = d.paid === true;
@@ -159,13 +168,13 @@ window.HorariosApp = window.HorariosApp || {};
                         : '';
 
                     block.innerHTML = `
-                        <div class="week-header">
-                            <div>
+                        <div class="week-header" onclick="${isWeekEmpty ? '' : 'HorariosApp.employeeDetail.toggleWeek(this.parentElement)'}">
+                            <div style="pointer-events: none;">
                                 <strong>Semana ${week.weekNum}</strong>
                                 <div style="font-size:0.7rem; opacity:0.8;">${rangeText}</div>
                                 <div style="font-size:0.7rem; font-weight:bold; color:var(--primary-dark);">${weekH}h | ${weekC.toFixed(2)}€</div>
                             </div>
-                            <button class="btn-pay-week" onclick="HorariosApp.employeeDetail.payPeriod('${weekDates}', 'week')">PAGAR SEMANA</button>
+                            <button class="btn-pay-week" onclick="event.stopPropagation(); HorariosApp.employeeDetail.payPeriod('${weekDates}', 'week')">PAGAR SEMANA</button>
                         </div>
                         <div class="week-content" style="padding-bottom: 0;">
                             ${daysHtml || '<p style="padding:10px;color:#888;font-size:0.8rem;">Sin registros</p>'}
@@ -190,10 +199,6 @@ window.HorariosApp = window.HorariosApp || {};
                         </div>
                     </div>
                 `;
-                // Mover el elemento de resumen al final del contenedor de la lista si es necesario
-                // Pero como summaryElement es un div fijo arriba en el HTML, lo ideal es moverlo en el HTML o inyectarlo dinámicamente.
-                // Según el index.html, employee-stats-summary está ANTES de employee-weeks-list. 
-                // Lo inyectaré al final de weeksList en lugar de en summaryElement.
                 
                 const finalSummaryCard = document.createElement('div');
                 finalSummaryCard.className = 'card';
@@ -257,6 +262,10 @@ window.HorariosApp = window.HorariosApp || {};
 
         getMonthNameShort: function(m) {
             return ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"][m];
+        },
+
+        toggleWeek: function(element) {
+            element.classList.toggle('collapsed');
         },
 
         toggleDayPay: async function(id, isPaid) {
