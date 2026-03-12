@@ -93,33 +93,61 @@ window.HorariosApp = window.HorariosApp || {};
             const promises = [];
 
             try {
-                // Primero borramos las horas existentes para este día para sobrescribir
+                // Obtenemos las horas existentes para este día
                 const existing = await window.HorariosApp.db.getByIndex('work_hours', 'date', currentSelectedDate);
-                
-                // Si ya había horas pagadas, avisamos (opcionalmente)
-                const hasPaidHours = existing.some(h => h.paid);
-                if (hasPaidHours) {
-                    if (!confirm('Este día contiene horas marcadas como PAGADAS. Si continúas, se reseteará el estado a "No Pagado" para las horas modificadas. ¿Deseas continuar?')) {
+                const existingMap = {};
+                existing.forEach(h => existingMap[h.employee_id] = h);
+
+                // Identificar cambios que afectan a horas PAGADAS antes de procesar
+                let modificationToPaid = false;
+                inputs.forEach(input => {
+                    const empId = parseInt(input.dataset.empId);
+                    const newHours = parseInt(input.value);
+                    const currentRecord = existingMap[empId];
+
+                    if (currentRecord && currentRecord.paid) {
+                        // Si el registro estaba pagado y se cambian las horas o se borran (newHours NaN o 0)
+                        if (isNaN(newHours) || newHours === 0 || newHours !== currentRecord.hours) {
+                            modificationToPaid = true;
+                        }
+                    }
+                });
+
+                if (modificationToPaid) {
+                    if (!confirm('Vas a modificar horas que ya han sido marcadas como PAGADAS. Si continúas, esas horas específicas se resetearán a "Pendiente de Pago". ¿Deseas continuar?')) {
                         return;
                     }
                 }
 
-                for (let h of existing) {
-                    await window.HorariosApp.db.remove('work_hours', h.id);
-                }
+                // Procesar cada entrada de empleado
+                for (const input of inputs) {
+                    const empId = parseInt(input.dataset.empId);
+                    const newHours = parseInt(input.value);
+                    const currentRecord = existingMap[empId];
 
-                // Guardamos las nuevas
-                inputs.forEach(input => {
-                    const hours = parseInt(input.value);
-                    if (!isNaN(hours) && hours > 0) {
-                        promises.push(window.HorariosApp.db.add('work_hours', {
-                            employee_id: parseInt(input.dataset.empId),
-                            date: currentSelectedDate,
-                            hours: hours,
-                            paid: false // Siempre se guardan como no pagadas al añadir/editar
-                        }));
+                    if (!isNaN(newHours) && newHours > 0) {
+                        // Si hay un cambio o es nuevo registro
+                        if (!currentRecord || currentRecord.hours !== newHours) {
+                            const data = {
+                                employee_id: empId,
+                                date: currentSelectedDate,
+                                hours: newHours,
+                                paid: false // Al cambiar las horas, siempre pasa a no pagado
+                            };
+
+                            if (currentRecord) {
+                                data.id = currentRecord.id;
+                                promises.push(window.HorariosApp.db.update('work_hours', data));
+                            } else {
+                                promises.push(window.HorariosApp.db.add('work_hours', data));
+                            }
+                        }
+                        // Si el registro existe y las horas son IGUALES, no tocamos nada (mantiene su estado 'paid')
+                    } else if (currentRecord) {
+                        // Si el input está vacío pero había registro, lo borramos
+                        promises.push(window.HorariosApp.db.remove('work_hours', currentRecord.id));
                     }
-                });
+                }
 
                 await Promise.all(promises);
                 window.HorariosApp.ui.showToast('Horas guardadas con éxito', 'success');
