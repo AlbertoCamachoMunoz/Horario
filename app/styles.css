@@ -539,6 +539,17 @@ main {
     cursor: pointer;
 }
 
+.badge-all-paid {
+    background: var(--success-color);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
 .pay-checkbox {
     width: 18px;
     height: 18px;

@@ -90,12 +90,10 @@ window.HorariosApp = window.HorariosApp || {};
                     onlyUnpaid = setting && (setting.value === 'true' || setting.value === true);
                 } catch(e) {}
 
-                const monthStr = `${year}-${String(month).padStart(2, '0')}`;
-                const monthHours = allHours.filter(h => h.date.startsWith(monthStr));
-
                 // 2. Desglose semanal
                 weeksList.innerHTML = '';
-                const weeks = this.groupHoursByWeek(year, month, monthHours);
+                // Pasamos todas las horas del empleado, la función se encarga de filtrar por rango de semanas del mes
+                const weeks = this.groupHoursByWeek(year, month, allHours);
 
                 let totalH = 0;
                 let totalC = 0;
@@ -137,7 +135,8 @@ window.HorariosApp = window.HorariosApp || {};
                     }
 
                     let daysHtml = week.days.map(d => {
-                        const dayNum = d.date.split('-')[2];
+                        const dateParts = d.date.split('-');
+                        const dayLabel = `${dateParts[2]}/${dateParts[1]}`;
                         const isPaid = d.paid === true;
                         const rowClass = isPaid ? 'row-paid' : 'row-unpaid';
                         const checkChecked = isPaid ? 'checked' : '';
@@ -146,7 +145,7 @@ window.HorariosApp = window.HorariosApp || {};
                             <div class="day-row ${rowClass}">
                                 <div style="display:flex; align-items:center; gap:10px;">
                                     <input type="checkbox" class="pay-checkbox" ${checkChecked} onchange="HorariosApp.employeeDetail.toggleDayPay(${d.id}, this.checked)">
-                                    <span>Día ${dayNum}</span>
+                                    <span>Día ${dayLabel}</span>
                                 </div>
                                 <div style="display:flex; align-items:center; gap:8px;">
                                     <span class="status-badge ${isPaid ? 'badge-paid' : 'badge-unpaid'}">${isPaid ? 'Pagado' : 'Pendiente'}</span>
@@ -167,6 +166,11 @@ window.HorariosApp = window.HorariosApp || {};
                            </div>`
                         : '';
 
+                    const isFullyPaid = !isWeekEmpty && weekUnpaidH === 0;
+                    const actionButton = isFullyPaid 
+                        ? `<span class="badge-all-paid">TODO PAGADO</span>`
+                        : `<button class="btn-pay-week" onclick="event.stopPropagation(); HorariosApp.employeeDetail.payPeriod('${weekDates}', 'week')">PAGAR SEMANA</button>`;
+
                     block.innerHTML = `
                         <div class="week-header" onclick="${isWeekEmpty ? '' : 'HorariosApp.employeeDetail.toggleWeek(this.parentElement)'}">
                             <div style="pointer-events: none;">
@@ -174,7 +178,7 @@ window.HorariosApp = window.HorariosApp || {};
                                 <div style="font-size:0.7rem; opacity:0.8;">${rangeText}</div>
                                 <div style="font-size:0.7rem; font-weight:bold; color:var(--primary-dark);">${weekH}h | ${weekC.toFixed(2)}€</div>
                             </div>
-                            <button class="btn-pay-week" onclick="event.stopPropagation(); HorariosApp.employeeDetail.payPeriod('${weekDates}', 'week')">PAGAR SEMANA</button>
+                            ${actionButton}
                         </div>
                         <div class="week-content" style="padding-bottom: 0;">
                             ${daysHtml || '<p style="padding:10px;color:#888;font-size:0.8rem;">Sin registros</p>'}
@@ -234,10 +238,11 @@ window.HorariosApp = window.HorariosApp || {};
                 const weekEnd = new Date(currentDay);
                 weekEnd.setDate(weekEnd.getDate() + 6);
 
-                // Filtrar horas que caen en esta semana Y en este mes
+                // Filtrar horas que caen en esta semana
                 const weekDays = hours.filter(h => {
                     const hDate = new Date(h.date);
-                    return hDate >= weekStart && hDate <= weekEnd && hDate.getMonth() === (month - 1);
+                    // IMPORTANTE: Quitamos el filtro de "mismo mes" para incluir días de meses adyacentes si están en la semana
+                    return hDate >= weekStart && hDate <= weekEnd;
                 }).sort((a,b) => a.date.localeCompare(b.date));
 
                 if (weekDays.length > 0 || (weekStart.getMonth() === (month - 1))) {
@@ -255,9 +260,14 @@ window.HorariosApp = window.HorariosApp || {};
         },
 
         getPriceForDate: function(prices, date) {
+            if (!prices || prices.length === 0) return 0;
             const sortedPrices = [...prices].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
             const price = sortedPrices.find(p => p.start_date <= date);
-            return price ? price.price_hour : 0;
+            
+            if (price) return price.price_hour;
+            
+            // Fallback: usar el precio más antiguo si no hay match para la fecha
+            return sortedPrices[sortedPrices.length - 1].price_hour;
         },
 
         getMonthNameShort: function(m) {

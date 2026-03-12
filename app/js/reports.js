@@ -109,18 +109,23 @@ window.HorariosApp = window.HorariosApp || {};
                 const workHours = await window.HorariosApp.db.getAll('work_hours');
                 const prices = await window.HorariosApp.db.getAll('price_hour');
                 
-                const monthStr = `${year}-${String(month).padStart(2, '0')}`;
                 const allWeeks = this.getWeeksInMonth(year, month);
-                
                 let filteredWeeks = (weekIdx === 'all') ? allWeeks : [allWeeks[weekIdx]];
+                
+                // Rango total de fechas a considerar para el filtrado de horas
+                const totalStart = filteredWeeks[0].start;
+                const totalEnd = filteredWeeks[filteredWeeks.length - 1].end;
+
                 let totalGlobal = 0;
                 let html = '';
 
-                // El bloque de "Gestión de Pagos" ha sido eliminado según Spec 08
-
                 for (let emp of employees) {
-                    // Filtrar horas del empleado para este mes
-                    let empHours = workHours.filter(h => h.employee_id === emp.id && h.date.startsWith(monthStr));
+                    // Filtrar horas del empleado que caigan en el rango de las semanas seleccionadas
+                    let empHours = workHours.filter(h => {
+                        if (h.employee_id !== emp.id) return false;
+                        const d = new Date(h.date);
+                        return d >= totalStart && d <= totalEnd;
+                    });
                     
                     // Aplicar filtro de estado (pagado/pendiente)
                     if (statusFilter === 'unpaid') {
@@ -160,9 +165,12 @@ window.HorariosApp = window.HorariosApp || {};
                                 const cost = h.hours * price;
                                 weekH += h.hours;
                                 weekC += cost;
-                                const dayNum = h.date.split('-')[2];
+                                const dateParts = h.date.split('-');
+                                const dayNum = dateParts[2];
+                                const monthNum = dateParts[1];
+                                
                                 empHtml += `<div style="display:flex; justify-content:space-between; font-size:0.8rem; padding:2px 10px;">
-                                    <span>Día ${dayNum} ${h.paid ? '<span style="color:#28a745; font-weight:bold;">(PAGADO)</span>' : '<span style="color:#f44336; font-weight:bold;">(PENDIENTE)</span>'}</span>
+                                    <span>Día ${dayNum}/${monthNum} ${h.paid ? '<span style="color:#28a745; font-weight:bold;">(PAGADO)</span>' : '<span style="color:#f44336; font-weight:bold;">(PENDIENTE)</span>'}</span>
                                     <span>${h.hours}h x ${price}€ = ${cost.toFixed(2)}€</span>
                                 </div>`;
                             });
@@ -206,9 +214,17 @@ window.HorariosApp = window.HorariosApp || {};
         },
 
         getPriceForDate: function(prices, date) {
+            if (!prices || prices.length === 0) return 0;
             const sortedPrices = [...prices].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+            
+            // Buscar precio válido para la fecha (start_date <= date)
             const price = sortedPrices.find(p => p.start_date <= date);
-            return price ? price.price_hour : 0;
+            
+            if (price) return price.price_hour;
+            
+            // Fallback: Si no hay precio que empiece antes de la fecha, usar el más antiguo disponible
+            // que es el último de nuestra lista ordenada descendentemente.
+            return sortedPrices[sortedPrices.length - 1].price_hour;
         },
 
         getMonthNameShort: function(m) {
